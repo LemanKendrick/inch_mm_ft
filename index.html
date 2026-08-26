@@ -209,22 +209,24 @@
     $("denomLabel").textContent = "/" + denom;
   }
 
-  function decompose(totalInches){
-    const roundedUnits = Math.round(totalInches * denom);
-    let wholeInches = Math.floor(roundedUnits / denom);
-    let numerator = roundedUnits - wholeInches * denom;
+  function decompose(total, d){
+    const roundedUnits = Math.round(total * d);
+    let wholeInches = Math.floor(roundedUnits / d);
+    let numerator = roundedUnits - wholeInches * d;
     if(numerator < 0){ numerator = 0; wholeInches = Math.max(0, wholeInches); }
     const feet = Math.floor(wholeInches / 12);
     const inch = wholeInches - feet * 12;
     return { feet, inch, numerator };
   }
 
-  function setFromTotalInches(total, skipField){
-    if(isNaN(total) || total < 0) total = 0;
+  // ---- Single source of truth: totalInches (full precision) ----
+  let totalInches = 1.875;
+
+  function refreshDisplay(skipField){
     updating = true;
-    if(skipField !== "decimalIn") $("decimalIn").value = round4(total);
-    if(skipField !== "mmIn") $("mmIn").value = round4(total * 25.4);
-    const { feet, inch, numerator } = decompose(total);
+    if(skipField !== "decimalIn") $("decimalIn").value = round4(totalInches);
+    if(skipField !== "mmIn") $("mmIn").value = round4(totalInches * 25.4);
+    const { feet, inch, numerator } = decompose(totalInches, denom);
     $("feetIn").value = feet;
     populateFractOptions(numerator);
     $("inchSel").value = inch;
@@ -238,13 +240,6 @@
     return feet * 12 + inch + numerator / denom;
   }
 
-  function syncDecimalAndMm(total){
-    updating = true;
-    $("decimalIn").value = round4(total);
-    $("mmIn").value = round4(total * 25.4);
-    updating = false;
-  }
-
   function parseLocaleFloat(str){
     return parseFloat(String(str).replace(",", "."));
   }
@@ -253,37 +248,44 @@
     if(updating) return;
     const val = parseLocaleFloat($("decimalIn").value);
     if(isNaN(val)) return;
-    setFromTotalInches(val, "decimalIn");
+    totalInches = val;
+    refreshDisplay("decimalIn");
   });
   $("decimalIn").addEventListener("blur", () => {
     const val = parseLocaleFloat($("decimalIn").value);
-    setFromTotalInches(isNaN(val) ? 0 : val);
+    totalInches = isNaN(val) ? 0 : val;
+    refreshDisplay();
   });
 
   $("mmIn").addEventListener("input", () => {
     if(updating) return;
     const val = parseLocaleFloat($("mmIn").value);
     if(isNaN(val)) return;
-    setFromTotalInches(val / 25.4, "mmIn");
+    totalInches = val / 25.4;
+    refreshDisplay("mmIn");
   });
   $("mmIn").addEventListener("blur", () => {
     const val = parseLocaleFloat($("mmIn").value);
-    setFromTotalInches(isNaN(val) ? 0 : val / 25.4);
+    totalInches = isNaN(val) ? 0 : val / 25.4;
+    refreshDisplay();
   });
 
   $("feetIn").addEventListener("input", () => {
     if(updating) return;
-    syncDecimalAndMm(getTotalFromFIF());
+    totalInches = getTotalFromFIF();
+    refreshDisplay();
   });
 
   $("inchSel").addEventListener("change", () => {
     if(updating) return;
-    syncDecimalAndMm(getTotalFromFIF());
+    totalInches = getTotalFromFIF();
+    refreshDisplay();
   });
 
   $("fractSel").addEventListener("change", () => {
     if(updating) return;
-    syncDecimalAndMm(getTotalFromFIF());
+    totalInches = getTotalFromFIF();
+    refreshDisplay();
   });
 
   // ---- Long-press on denominator cycles 8 -> 16 -> 32 -> 8 ----
@@ -292,15 +294,11 @@
   const denomEl = $("denomLabel");
 
   function cycleDenom(){
-    const numeratorOld = parseFloat($("fractSel").value) || 0;
-    const feet = parseFloat($("feetIn").value) || 0;
-    const inch = parseFloat($("inchSel").value) || 0;
-    const total = feet * 12 + inch + numeratorOld / denom;
-
+    // totalInches is left untouched — only the fraction's resolution changes,
+    // so Decimal In. and Millimeters never drift from what was actually entered.
     const idx = order.indexOf(denom);
     denom = order[(idx + 1) % order.length];
-
-    setFromTotalInches(total);
+    refreshDisplay();
     flashDenom();
     if(navigator.vibrate) navigator.vibrate(15);
   }
@@ -330,7 +328,7 @@
 
   // ---- Init ----
   populateInchOptions();
-  setFromTotalInches(1.875); // 1' 7/8" example, matches 47.625 mm
+  refreshDisplay(); // totalInches starts at 1.875 (1' 7/8", matches 47.625 mm)
 
   if("serviceWorker" in navigator){
     window.addEventListener("load", () => {
