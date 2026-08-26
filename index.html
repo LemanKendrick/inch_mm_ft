@@ -141,7 +141,7 @@
   <div class="row">
     <div class="field">
       <label>Decimal In.</label>
-      <input type="number" inputmode="decimal" id="decimalIn" step="any">
+      <input type="text" inputmode="decimal" id="decimalIn">
     </div>
     <div class="arrows">
       <span>&#8594;</span>
@@ -149,7 +149,7 @@
     </div>
     <div class="field">
       <label>Millimeters</label>
-      <input type="number" inputmode="decimal" id="mmIn" step="any">
+      <input type="text" inputmode="decimal" id="mmIn">
     </div>
   </div>
 
@@ -245,16 +245,20 @@
     updating = false;
   }
 
+  function parseLocaleFloat(str){
+    return parseFloat(String(str).replace(",", "."));
+  }
+
   $("decimalIn").addEventListener("input", () => {
     if(updating) return;
-    const val = parseFloat($("decimalIn").value);
+    const val = parseLocaleFloat($("decimalIn").value);
     if(isNaN(val)) return;
     setFromTotalInches(val);
   });
 
   $("mmIn").addEventListener("input", () => {
     if(updating) return;
-    const val = parseFloat($("mmIn").value);
+    const val = parseLocaleFloat($("mmIn").value);
     if(isNaN(val)) return;
     setFromTotalInches(val / 25.4);
   });
