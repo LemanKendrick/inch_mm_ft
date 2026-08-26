@@ -219,11 +219,11 @@
     return { feet, inch, numerator };
   }
 
-  function setFromTotalInches(total){
+  function setFromTotalInches(total, skipField){
     if(isNaN(total) || total < 0) total = 0;
     updating = true;
-    $("decimalIn").value = round4(total);
-    $("mmIn").value = round4(total * 25.4);
+    if(skipField !== "decimalIn") $("decimalIn").value = round4(total);
+    if(skipField !== "mmIn") $("mmIn").value = round4(total * 25.4);
     const { feet, inch, numerator } = decompose(total);
     $("feetIn").value = feet;
     populateFractOptions(numerator);
@@ -253,14 +253,22 @@
     if(updating) return;
     const val = parseLocaleFloat($("decimalIn").value);
     if(isNaN(val)) return;
-    setFromTotalInches(val);
+    setFromTotalInches(val, "decimalIn");
+  });
+  $("decimalIn").addEventListener("blur", () => {
+    const val = parseLocaleFloat($("decimalIn").value);
+    setFromTotalInches(isNaN(val) ? 0 : val);
   });
 
   $("mmIn").addEventListener("input", () => {
     if(updating) return;
     const val = parseLocaleFloat($("mmIn").value);
     if(isNaN(val)) return;
-    setFromTotalInches(val / 25.4);
+    setFromTotalInches(val / 25.4, "mmIn");
+  });
+  $("mmIn").addEventListener("blur", () => {
+    const val = parseLocaleFloat($("mmIn").value);
+    setFromTotalInches(isNaN(val) ? 0 : val / 25.4);
   });
 
   $("feetIn").addEventListener("input", () => {
