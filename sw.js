@@ -1,4 +1,4 @@
-const CACHE_NAME = "length-conv-v2";
+const CACHE_NAME = "length-conv-v3";
 const ASSETS = [
   "./",
   "./index.html",
