@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>Length Conversions</title>
+
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Length Conv">
+<meta name="theme-color" content="#f0d999">
+
+<style>
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{
+    margin:0;
+    height:100%;
+    background:#f0d999;
+    font-family:-apple-system, "Segoe UI", Roboto, sans-serif;
+    overscroll-behavior:none;
+    touch-action:manipulation;
+    user-select:none;
+    -webkit-user-select:none;
+  }
+  .wrap{
+    max-width:480px;
+    margin:0 auto;
+    padding:28px 20px 40px;
+  }
+  h1{
+    text-align:center;
+    color:#1a4fd6;
+    font-size:1.6rem;
+    text-decoration:underline;
+    margin:10px 0 34px;
+  }
+  .row{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:14px;
+    margin-bottom:26px;
+  }
+  .field{
+    position:relative;
+    background:#f7f04a;
+    border:2px solid #000;
+    border-radius:14px;
+    padding:8px 14px 10px;
+    flex:1;
+    min-width:0;
+  }
+  .field label{
+    display:block;
+    font-size:0.72rem;
+    color:#6b6b3a;
+    margin-bottom:2px;
+  }
+  .field input, .field select{
+    width:100%;
+    border:none;
+    background:transparent;
+    font-size:1.55rem;
+    color:#111;
+    padding:0;
+    -webkit-appearance:none;
+    appearance:none;
+    font-family:inherit;
+  }
+  .field select{
+    -webkit-appearance:none;
+    appearance:none;
+    background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'><path fill='%23555' d='M5 7l5 5 5-5z'/></svg>");
+    background-repeat:no-repeat;
+    background-position:right 0 center;
+    background-size:18px;
+    padding-right:20px;
+  }
+  .field input:focus, .field select:focus{
+    outline:none;
+  }
+  .arrows{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    font-size:1.1rem;
+    font-weight:700;
+    color:#111;
+    flex-shrink:0;
+    line-height:1.3;
+  }
+  .divider{
+    height:3px;
+    background:#1a4fd6;
+    border-radius:2px;
+    margin:6px 0 30px;
+  }
+  .fif-row{
+    display:flex;
+    align-items:flex-end;
+    gap:10px;
+    justify-content:center;
+  }
+  .fif-row .field{flex:1;}
+  .denom-wrap{
+    display:flex;
+    align-items:center;
+    flex-shrink:0;
+    padding-bottom:10px;
+  }
+  .denom{
+    font-size:1.4rem;
+    font-weight:700;
+    color:#1a4fd6;
+    cursor:pointer;
+    padding:6px 4px;
+    border-radius:8px;
+    transition:transform 0.15s, background 0.15s;
+  }
+  .denom.pulse{
+    transform:scale(1.25);
+    background:#dfe8ff;
+  }
+  .hint{
+    text-align:center;
+    color:#7a6a3a;
+    font-size:0.78rem;
+    margin-top:34px;
+    line-height:1.5;
+  }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <h1>Length Conversions</h1>
+
+  <div class="row">
+    <div class="field">
+      <label>Decimal In.</label>
+      <input type="number" inputmode="decimal" id="decimalIn" step="any">
+    </div>
+    <div class="arrows">
+      <span>&#8594;</span>
+      <span>&#8592;</span>
+    </div>
+    <div class="field">
+      <label>Millimeters</label>
+      <input type="number" inputmode="decimal" id="mmIn" step="any">
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <div class="fif-row">
+    <div class="field">
+      <label>Feet</label>
+      <input type="number" inputmode="numeric" id="feetIn" step="1" min="0">
+    </div>
+    <div class="field">
+      <label>Inch</label>
+      <select id="inchSel"></select>
+    </div>
+    <div class="field">
+      <label>Fract</label>
+      <select id="fractSel"></select>
+    </div>
+    <div class="denom-wrap">
+      <span class="denom" id="denomLabel">/8</span>
+    </div>
+  </div>
+
+  <div class="hint">Long-press the denominator to cycle between 8ths, 16ths, and 32nds.</div>
+</div>
+
+<script>
+(function(){
+  let denom = 8;
+  let updating = false;
+
+  const $ = (id) => document.getElementById(id);
+
+  function round4(n){ return Math.round(n * 10000) / 10000; }
+
+  function populateInchOptions(){
+    const sel = $("inchSel");
+    sel.innerHTML = "";
+    for(let i = 0; i <= 11; i++){
+      const opt = document.createElement("option");
+      opt.value = i;
+      opt.textContent = i;
+      sel.appendChild(opt);
+    }
+  }
+
+  function populateFractOptions(numerator){
+    const sel = $("fractSel");
+    sel.innerHTML = "";
+    for(let n = 0; n < denom; n++){
+      const opt = document.createElement("option");
+      opt.value = n;
+      opt.textContent = n;
+      sel.appendChild(opt);
+    }
+    sel.value = numerator;
+    $("denomLabel").textContent = "/" + denom;
+  }
+
+  function decompose(totalInches){
+    const roundedUnits = Math.round(totalInches * denom);
+    let wholeInches = Math.floor(roundedUnits / denom);
+    let numerator = roundedUnits - wholeInches * denom;
+    if(numerator < 0){ numerator = 0; wholeInches = Math.max(0, wholeInches); }
+    const feet = Math.floor(wholeInches / 12);
+    const inch = wholeInches - feet * 12;
+    return { feet, inch, numerator };
+  }
+
+  function setFromTotalInches(total){
+    if(isNaN(total) || total < 0) total = 0;
+    updating = true;
+    $("decimalIn").value = round4(total);
+    $("mmIn").value = round4(total * 25.4);
+    const { feet, inch, numerator } = decompose(total);
+    $("feetIn").value = feet;
+    populateFractOptions(numerator);
+    $("inchSel").value = inch;
+    updating = false;
+  }
+
+  function getTotalFromFIF(){
+    const feet = parseFloat($("feetIn").value) || 0;
+    const inch = parseFloat($("inchSel").value) || 0;
+    const numerator = parseFloat($("fractSel").value) || 0;
+    return feet * 12 + inch + numerator / denom;
+  }
+
+  function syncDecimalAndMm(total){
+    updating = true;
+    $("decimalIn").value = round4(total);
+    $("mmIn").value = round4(total * 25.4);
+    updating = false;
+  }
+
+  $("decimalIn").addEventListener("input", () => {
+    if(updating) return;
+    const val = parseFloat($("decimalIn").value);
+    if(isNaN(val)) return;
+    setFromTotalInches(val);
+  });
+
+  $("mmIn").addEventListener("input", () => {
+    if(updating) return;
+    const val = parseFloat($("mmIn").value);
+    if(isNaN(val)) return;
+    setFromTotalInches(val / 25.4);
+  });
+
+  $("feetIn").addEventListener("input", () => {
+    if(updating) return;
+    syncDecimalAndMm(getTotalFromFIF());
+  });
+
+  $("inchSel").addEventListener("change", () => {
+    if(updating) return;
+    syncDecimalAndMm(getTotalFromFIF());
+  });
+
+  $("fractSel").addEventListener("change", () => {
+    if(updating) return;
+    syncDecimalAndMm(getTotalFromFIF());
+  });
+
+  // ---- Long-press on denominator cycles 8 -> 16 -> 32 -> 8 ----
+  const order = [8, 16, 32];
+  let pressTimer = null;
+  const denomEl = $("denomLabel");
+
+  function cycleDenom(){
+    const numeratorOld = parseFloat($("fractSel").value) || 0;
+    const feet = parseFloat($("feetIn").value) || 0;
+    const inch = parseFloat($("inchSel").value) || 0;
+    const total = feet * 12 + inch + numeratorOld / denom;
+
+    const idx = order.indexOf(denom);
+    denom = order[(idx + 1) % order.length];
+
+    setFromTotalInches(total);
+    flashDenom();
+    if(navigator.vibrate) navigator.vibrate(15);
+  }
+
+  function flashDenom(){
+    denomEl.classList.add("pulse");
+    setTimeout(() => denomEl.classList.remove("pulse"), 200);
+  }
+
+  function startPress(e){
+    e.preventDefault();
+    if(pressTimer) return;
+    pressTimer = setTimeout(() => {
+      cycleDenom();
+      pressTimer = null;
+    }, 550);
+  }
+  function cancelPress(){
+    if(pressTimer){ clearTimeout(pressTimer); pressTimer = null; }
+  }
+
+  denomEl.addEventListener("pointerdown", startPress);
+  denomEl.addEventListener("pointerup", cancelPress);
+  denomEl.addEventListener("pointerleave", cancelPress);
+  denomEl.addEventListener("pointercancel", cancelPress);
+  denomEl.addEventListener("contextmenu", (e) => e.preventDefault());
+
+  // ---- Init ----
+  populateInchOptions();
+  setFromTotalInches(1.875); // 1' 7/8" example, matches 47.625 mm
+
+  if("serviceWorker" in navigator){
+    window.addEventListener("load", () => {
+      navigator.serviceWorker.register("sw.js").catch(() => {});
+    });
+  }
+})();
+</script>
+
+</body>
+</html>
